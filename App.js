@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 const STOCKS = [
   { rank: 1,   symbol: 'NVDA',  name: 'NVIDIA',                weight: 7.23, price: 187.05 },
@@ -277,6 +277,65 @@ function CommInput({ label, value, onChange }) {
   );
 }
 
+function LiveBadge({ status }) {
+  const cfg = {
+    idle:    { color: C.muted,   dot: C.muted,   label: 'INITIALIZING' },
+    loading: { color: C.yellow,  dot: C.yellow,  label: 'FETCHING…' },
+    live:    { color: C.green,   dot: C.green,   label: 'LIVE' },
+    closed:  { color: C.muted,   dot: C.muted,   label: 'MARKET CLOSED' },
+    error:   { color: C.red,     dot: C.red,     label: 'OFFLINE' },
+  }[status.state] ?? { color: C.muted, dot: C.muted, label: '' };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: cfg.color, letterSpacing: '0.08em' }}>
+      <span style={{
+        width: 7, height: 7, borderRadius: '50%', background: cfg.dot, flexShrink: 0,
+        boxShadow: status.state === 'live' ? `0 0 6px ${C.green}` : 'none',
+        animation: status.state === 'live' ? 'pulse 2s infinite' : 'none',
+      }} />
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <span>{cfg.label}</span>
+      {status.lastUpdate && (
+        <span style={{ color: C.muted }}>
+          {status.lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+      )}
+      {status.error && <span style={{ color: C.red, fontSize: 10 }}> ({status.error})</span>}
+    </div>
+  );
+}
+
+// Yahoo Finance uses BRK-B not BRK.B
+const toYahooSym = s => s.replace('.', '-');
+
+function isMarketOpen() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay();
+  if (day === 0 || day === 6) return false;
+  const mins = et.getHours() * 60 + et.getMinutes();
+  return mins >= 9 * 60 + 30 && mins < 16 * 60;
+}
+
+const BATCH = 100;
+async function fetchYahooQuotes(symbols) {
+  const batches = [];
+  for (let i = 0; i < symbols.length; i += BATCH) batches.push(symbols.slice(i, i + BATCH));
+  const results = {};
+  await Promise.all(batches.map(async batch => {
+    const syms = batch.map(toYahooSym).join(',');
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?formatted=false&symbols=${syms}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    (data.quoteResponse?.result || []).forEach(q => {
+      const sym = q.symbol.replace('-', '.');
+      if (q.regularMarketPrice) results[sym] = q.regularMarketPrice;
+    });
+  }));
+  return results;
+}
+
 export default function App() {
   const [nStocks, setNStocks] = useState(50);
   const [budget, setBudget] = useState(50000);
@@ -287,19 +346,50 @@ export default function App() {
   const [priceOverrides, setPriceOverrides] = useState({});
   const [search, setSearch] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [livePrices, setLivePrices] = useState({});
+  const [liveStatus, setLiveStatus] = useState({ state: 'idle', lastUpdate: null, error: null });
+  const fetchingRef = useRef(false);
+
+  useEffect(() => {
+    const allSymbols = STOCKS.map(s => s.symbol);
+
+    async function tick() {
+      if (fetchingRef.current) return;
+      if (!isMarketOpen()) {
+        setLiveStatus(s => ({ ...s, state: 'closed' }));
+        return;
+      }
+      fetchingRef.current = true;
+      setLiveStatus(s => ({ ...s, state: 'loading' }));
+      try {
+        const prices = await fetchYahooQuotes(allSymbols);
+        setLivePrices(prices);
+        setLiveStatus({ state: 'live', lastUpdate: new Date(), error: null });
+      } catch (e) {
+        setLiveStatus(s => ({ ...s, state: 'error', error: e.message }));
+      } finally {
+        fetchingRef.current = false;
+      }
+    }
+
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const slice = useMemo(() => STOCKS.slice(0, nStocks), [nStocks]);
 
   const holdings = useMemo(() => {
     const sliceWeight = slice.reduce((s, st) => s + st.weight, 0);
     return slice.map(st => {
-      const price = priceOverrides[st.symbol] !== undefined ? priceOverrides[st.symbol] : st.price;
+      const manualOverride = priceOverrides[st.symbol] !== undefined;
+      const price = manualOverride ? priceOverrides[st.symbol] : (livePrices[st.symbol] ?? st.price);
       const idealDollars = (st.weight / sliceWeight) * budget;
       const shares = Math.max(1, Math.ceil(idealDollars / price));
       const actualCost = shares * price;
-      return { ...st, price, overridden: priceOverrides[st.symbol] !== undefined, shares, actualCost, sliceWeight };
+      return { ...st, price, overridden: manualOverride, shares, actualCost, sliceWeight };
     });
-  }, [slice, budget, priceOverrides]);
+  }, [slice, budget, priceOverrides, livePrices]);
 
   const totals = useMemo(() => {
     const totalInvested = holdings.reduce((s, h) => s + h.actualCost, 0);
@@ -336,11 +426,14 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: C.bg, padding: '24px 20px' }}>
       {/* Header */}
       <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: C.text }}>
-            DIY INDEX
-          </span>
-          <span style={{ color: C.muted, fontSize: 13 }}>S&amp;P 500 replication calculator</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: C.text }}>
+              DIY INDEX
+            </span>
+            <span style={{ color: C.muted, fontSize: 13 }}>S&amp;P 500 replication calculator</span>
+          </div>
+          <LiveBadge status={liveStatus} />
         </div>
       </div>
 
