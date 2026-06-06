@@ -277,6 +277,37 @@ function CommInput({ label, value, onChange }) {
   );
 }
 
+// Replace these with your real AdSense IDs after AdSense approval
+const ADSENSE_CLIENT = 'ca-pub-XXXXXXXXXXXXXXXX';
+const AD_SLOTS = {
+  leaderboard: 'XXXXXXXXXX',  // 728×90 — below header
+  sidebar: 'XXXXXXXXXX',      // 300×250 — bottom of left panel
+};
+
+function AdUnit({ slot, format = 'auto', style = {} }) {
+  const ref = React.useRef(null);
+  useEffect(() => {
+    try {
+      if (ref.current && ref.current.offsetWidth > 0) {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }
+    } catch (_) {}
+  }, []);
+  return (
+    <div style={{ textAlign: 'center', overflow: 'hidden', ...style }}>
+      <ins
+        ref={ref}
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive="true"
+      />
+    </div>
+  );
+}
+
 function LiveBadge({ status }) {
   const cfg = {
     idle:    { color: C.muted,   dot: C.muted,   label: 'INITIALIZING' },
@@ -437,6 +468,9 @@ export default function App() {
         </div>
       </div>
 
+      {/* Leaderboard ad — below header */}
+      <AdUnit slot={AD_SLOTS.leaderboard} format="horizontal" style={{ marginBottom: 20 }} />
+
       {/* Two-column layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 20, alignItems: 'start' }}>
 
@@ -569,6 +603,8 @@ export default function App() {
               ))}
             </div>
           </div>
+          {/* Sidebar ad — bottom of left panel */}
+          <AdUnit slot={AD_SLOTS.sidebar} format="rectangle" style={{ marginTop: 4 }} />
         </div>
 
         {/* RIGHT PANEL — Holdings Table */}
