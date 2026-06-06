@@ -277,11 +277,10 @@ function CommInput({ label, value, onChange }) {
   );
 }
 
-// Replace these with your real AdSense IDs after AdSense approval
 const ADSENSE_CLIENT = 'ca-pub-1103723734498091';
 const AD_SLOTS = {
-  leaderboard: 'XXXXXXXXXX',  // 728×90 — below header
-  sidebar: 'XXXXXXXXXX',      // 300×250 — bottom of left panel
+  leaderboard: 'XXXXXXXXXX',
+  sidebar: 'XXXXXXXXXX',
 };
 
 function AdUnit({ slot, format = 'auto', style = {} }) {
@@ -336,7 +335,6 @@ function LiveBadge({ status }) {
   );
 }
 
-// Yahoo Finance uses BRK-B not BRK.B
 const toYahooSym = s => s.replace('.', '-');
 
 function isMarketOpen() {
@@ -455,7 +453,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, padding: '24px 20px' }}>
-      {/* Header */}
       <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
@@ -468,16 +465,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* Leaderboard ad — below header */}
       <AdUnit slot={AD_SLOTS.leaderboard} format="horizontal" style={{ marginBottom: 20 }} />
 
-      {/* Two-column layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 20, alignItems: 'start' }}>
-
-        {/* LEFT PANEL */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Summary stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={s.card}>
               <div style={s.label}>Total Invested</div>
@@ -493,7 +484,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Controls */}
           <div style={{ ...s.card, padding: '16px 16px 8px' }}>
             <div style={{ marginBottom: 14 }}>
               <SliderRow label="Number of stocks" value={nStocks} min={5} max={200}
@@ -522,7 +512,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Index Coverage Bar */}
           <div style={s.card}>
             <div style={{ ...s.label, marginBottom: 10 }}>INDEX COVERAGE</div>
             <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 28, marginBottom: 8 }}>
@@ -530,7 +519,6 @@ export default function App() {
                 width: `${totals.indexCoverage}%`, background: C.accent,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 11, fontWeight: 600, color: '#fff', transition: 'width 0.2s',
-                minWidth: totals.indexCoverage > 8 ? 0 : 0,
               }}>
                 {totals.indexCoverage > 8 && `${fmtDec(totals.indexCoverage, 1)}%`}
               </div>
@@ -551,7 +539,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Fee Comparison */}
           <div style={s.card}>
             <div style={{ ...s.label, marginBottom: 12 }}>FEE COMPARISON — {years}yr OUTCOME</div>
             <div style={{ marginBottom: 10 }}>
@@ -589,8 +576,6 @@ export default function App() {
                 </div>
               );
             })}
-
-            {/* DIY advantage callout */}
             <div style={{ marginTop: 14, padding: '10px 12px', background: '#0a0a0f', borderRadius: 8, border: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11, color: C.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>DIY Advantage</div>
               {fundResults.filter(f => ['SPY', 'Avg Fund'].includes(f.name)).map(f => (
@@ -603,13 +588,10 @@ export default function App() {
               ))}
             </div>
           </div>
-          {/* Sidebar ad — bottom of left panel */}
           <AdUnit slot={AD_SLOTS.sidebar} format="rectangle" style={{ marginTop: 4 }} />
         </div>
 
-        {/* RIGHT PANEL — Holdings Table */}
         <div style={{ ...s.card, padding: 0, overflow: 'hidden' }}>
-          {/* Table header bar */}
           <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, color: C.text }}>
               Holdings — Top {nStocks}
@@ -626,8 +608,6 @@ export default function App() {
               }}
             />
           </div>
-
-          {/* Column headers */}
           <div style={{
             display: 'grid', gridTemplateColumns: '36px 70px 1fr 110px 60px 90px',
             padding: '8px 16px', borderBottom: `1px solid ${C.border}`,
@@ -640,8 +620,6 @@ export default function App() {
             <div style={{ textAlign: 'right' }}>Shares</div>
             <div style={{ textAlign: 'right' }}>Cost</div>
           </div>
-
-          {/* Rows */}
           <div style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
             {displayed.map((h) => (
               <div key={h.symbol} style={{
@@ -696,8 +674,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
-          {/* Footer */}
           {(filtered.length > 25 || showAll) && (
             <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 12, color: C.muted }}>{filtered.length} holdings</span>
@@ -712,8 +688,6 @@ export default function App() {
               </button>
             </div>
           )}
-
-          {/* Table totals */}
           <div style={{
             padding: '10px 16px', background: C.card, borderTop: `1px solid ${C.border}`,
             display: 'grid', gridTemplateColumns: '36px 70px 1fr 110px 60px 90px',
@@ -731,7 +705,6 @@ export default function App() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
