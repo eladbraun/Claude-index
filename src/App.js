@@ -278,7 +278,7 @@ function CommInput({ label, value, onChange }) {
 }
 
 // Replace these with your real AdSense IDs after AdSense approval
-const ADSENSE_CLIENT = 'ca-pub-XXXXXXXXXXXXXXXX';
+const ADSENSE_CLIENT = 'ca-pub-1103723734498091';
 const AD_SLOTS = {
   leaderboard: 'XXXXXXXXXX',  // 728×90 — below header
   sidebar: 'XXXXXXXXXX',      // 300×250 — bottom of left panel
